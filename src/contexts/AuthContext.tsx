@@ -8,6 +8,7 @@ import {
 
 interface AuthContextType {
   isAuthenticated: boolean
+  setIsAuthenticated: (value: boolean) => void
   isLoading: boolean
   error: Error | null
 }
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     isAuthenticated,
+    setIsAuthenticated,
     isLoading,
     error,
   }

@@ -10,11 +10,33 @@ import {
 import { useNavigate } from 'react-router-dom'
 
 import { LucideSchool } from 'lucide-react'
+import { GoogleLogin } from '@react-oauth/google'
+import { useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 
 const Home = () => {
   const navigate = useNavigate()
+  const [user, setUser] = useState(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const { setIsAuthenticated } = useAuth()
+
   const handleSignIn = () => {
     console.log('Signing in with Google')
+  }
+
+  const handleGoogleSuccess = (response: any) => {
+    console.log(response)
+    console.log(response.credential)
+    setIsAuthenticated(true)
+
+    if (response.credential) {
+      console.log(response.credential)
+      navigate('/groups')
+    }
+  }
+  const errorMessage = (error: any) => {
+    console.log(error)
   }
 
   return (
@@ -32,7 +54,12 @@ const Home = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Login Failed')}
+            useOneTap
+          />
+          {/* <Button
             onClick={handleSignIn}
             className='w-full bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
           >
@@ -52,7 +79,7 @@ const Home = () => {
               ></path>
             </svg>
             Sign in with Google
-          </Button>
+          </Button> */}
         </CardContent>
       </Card>
     </div>
