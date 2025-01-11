@@ -22,15 +22,17 @@ import React from 'react'
 import Sidebar from '@/lib/layout/Sidebar'
 import axios from 'axios'
 import { GroupDialog } from '@/lib/components/GroupDialog'
+import { toast } from 'react-toastify'
 
 const index = () => {
   const [groups, setGroups] = useState([])
-
+  const [leadersEmail, setLeadersEmail] = useState('')
+  const [leadersRecord, setLeadersRecord] = useState('')
   const [newGroupName, setNewGroupName] = React.useState('')
-  const [newGroupMembers, setNewGroupMembers] = React.useState('')
-  const [selectedEmails, setSelectedEmails] = useState<
+  const [selectedMembers, setSelectedMembers] = useState<
     { value: string; label: string }[]
   >([])
+  const [emails, setEmails] = useState<{ value: string; label: string }[]>([])
 
   const getGroups = async () => {
     try {
@@ -51,16 +53,24 @@ const index = () => {
     try {
       const email = localStorage.getItem('userEmail')
       const response = await axios.get(
-        `http://127.0.0.1:5000/parents_emails/${email}`,
+        `http://127.0.0.1:5000/parent_emails/${email}`,
         {
           headers: {
             Accept: 'application/json',
           },
         }
       )
-      console.log('emails list', response.data.data)
+      console.log('emails list', response.data)
 
-      // setGroups(response.data.data)
+      let data = response.data
+      const leaders_email = data.teacher_name[0]
+      const leaders_record = data.teacher_record[0]
+      let emails = data.members
+      console.log('emails', emails, leaders_email, leaders_record)
+
+      setEmails(emails)
+      setLeadersEmail(leaders_email)
+      setLeadersRecord(leaders_record)
     } catch (error) {
       console.error('Error fetching groups:', error)
     }
@@ -75,14 +85,15 @@ const index = () => {
     e.preventDefault()
 
     try {
-      if (newGroupName.trim() && newGroupMembers.trim()) {
+      if (newGroupName.trim() && selectedMembers.length > 0) {
+        let members = selectedMembers.map((m) => m.value)
         const response = await axios.post(
           'http://127.0.0.1:5000/groups',
           {
-            Leaders: ['recK0GhK7Fc3PvL8D'],
-            Name: 'Class 2',
-            Parents: ['recSiVRraNerG6gPa'],
-            Teacher: 'Class Teacher 2',
+            Leaders: [`${leadersRecord}`],
+            Name: newGroupName.trim(),
+            Parents: members,
+            Teacher: `${leadersEmail}`,
           },
           {
             headers: {
@@ -92,13 +103,14 @@ const index = () => {
         )
         console.log('groups creation response', response.data)
         setNewGroupName('')
-        setNewGroupMembers('')
-
+        setSelectedMembers([])
         getGroups()
+        toast.success('Group created successfully')
       } else {
-        alert('Please enter group name and members')
+        toast.error('Please enter group name and members')
       }
     } catch (error) {
+      toast.error('Error creating group')
       console.error('Error fetching groups:', error)
     }
   }
@@ -120,8 +132,10 @@ const index = () => {
     const data = response.data.data
 
     if (data.deleted) {
-      alert('Group deleted successfully')
+      toast.success('Group deleted successfully')
       getGroups()
+    } else {
+      toast.error('Error deleting group')
     }
   }
 
@@ -166,53 +180,16 @@ const index = () => {
                   <Select
                     isMulti
                     name='emails'
-                    options={[
-                      {
-                        value: 'user1@example.com',
-                        label: 'user1@example.com',
-                      },
-                      {
-                        value: 'user2@example.com',
-                        label: 'user2@example.com',
-                      },
-                      {
-                        value: 'user3@example.com',
-                        label: 'user3@example.com',
-                      },
-                      {
-                        value: 'user4@example.com',
-                        label: 'user4@example.com',
-                      },
-                      {
-                        value: 'user5@example.com',
-                        label: 'user5@example.com',
-                      },
-                      {
-                        value: 'user6@example.com',
-                        label: 'user6@example.com',
-                      },
-                      {
-                        value: 'user7@example.com',
-                        label: 'user7@example.com',
-                      },
-                      {
-                        value: 'user8@example.com',
-                        label: 'user8@example.com',
-                      },
-                      {
-                        value: 'user9@example.com',
-                        label: 'user9@example.com',
-                      },
-                    ]}
+                    options={emails}
                     // styles={{
                     //   control: (baseStyles, state) => ({
                     //     ...baseStyles,
                     //     stat
                     //   }),
                     // }}
-                    value={selectedEmails}
+                    value={selectedMembers}
                     onChange={(selected) =>
-                      setSelectedEmails(
+                      setSelectedMembers(
                         selected as { value: string; label: string }[]
                       )
                     }
@@ -232,6 +209,22 @@ const index = () => {
             <h2 className='text-lg font-semibold mb-4'>Existing Groups</h2>
             <div className='space-y-2'>
               {groups.map((group: any, index: number) => {
+                let parents_email = group.fields['Parent Email']
+                let parents_record = group.fields['Parents']
+
+                let members = []
+
+                if (parents_email && parents_record) {
+                  for (let i = 0; i < parents_email.length; i++) {
+                    members.push({
+                      value: parents_record[i],
+                      label: parents_email[i],
+                    })
+                  }
+                }
+
+                console.log('members', members)
+
                 return (
                   group.fields.Name && (
                     <div
@@ -243,7 +236,8 @@ const index = () => {
                         <GroupDialog
                           data={{
                             name: group.fields.Name,
-                            members: group.fields['Parent Email'],
+                            members: members,
+                            emails: emails,
                           }}
                         >
                           <Button
@@ -257,8 +251,9 @@ const index = () => {
                         <GroupDialog
                           data={{
                             name: group.fields.Name,
-                            members: group.fields['Parent Email'],
+                            members: members,
                           }}
+                          name='view'
                         >
                           <Button
                             variant='outline'

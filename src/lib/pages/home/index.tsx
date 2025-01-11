@@ -16,6 +16,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { jwtDecode } from 'jwt-decode'
+import { toast } from 'react-toastify'
 
 interface GoogleUserInfo {
   email: string
@@ -67,15 +68,15 @@ const Home = () => {
         }
 
         navigate('/groups')
-        alert('Login Success')
+        toast.success('Login Success')
       } else {
         setError('Unauthorized access')
         setIsAuthenticated(false)
-        alert('Login Failed')
+        toast.error('Login Failed')
       }
     } catch (err) {
       console.error('Authentication error:', err)
-      setError('Login failed')
+      toast.error('Login failed')
       setIsAuthenticated(false)
     }
   }
