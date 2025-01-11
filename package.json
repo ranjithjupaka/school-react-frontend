@@ -5,7 +5,7 @@
   "author": "ranjith",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "start": "vite",
     "build": "vite build",
     "build:turbo": "npx turbo build",
     "serve": "vite preview",
