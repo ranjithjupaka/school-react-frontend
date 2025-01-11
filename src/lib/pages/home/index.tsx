@@ -7,36 +7,77 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
+import axios from 'axios'
+
 import { useNavigate } from 'react-router-dom'
 
 import { LucideSchool } from 'lucide-react'
 import { GoogleLogin } from '@react-oauth/google'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { jwtDecode } from 'jwt-decode'
+
+interface GoogleUserInfo {
+  email: string
+  name?: string
+  picture?: string
+}
 
 const Home = () => {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { setIsAuthenticated } = useAuth()
+  const { setIsAuthenticated, isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/groups')
+    }
+  }, [isAuthenticated, navigate])
 
   const handleSignIn = () => {
     console.log('Signing in with Google')
   }
 
-  const handleGoogleSuccess = (response: any) => {
-    console.log(response)
-    console.log(response.credential)
-    setIsAuthenticated(true)
-
-    if (response.credential) {
+  const handleGoogleSuccess = async (response: any) => {
+    try {
+      console.log(response)
       console.log(response.credential)
-      navigate('/groups')
+
+      const decodedToken = jwtDecode<GoogleUserInfo>(response.credential)
+      console.log(decodedToken)
+      const userEmail = decodedToken.email
+
+      const resp = await axios.post('http://127.0.0.1:5000/login', {
+        email: userEmail,
+      })
+
+      const data = resp.data
+
+      console.log('resp data', data)
+
+      const allowedEmails = ['ranjithjupaka@gmail.com']
+
+      if (allowedEmails.includes(userEmail) || data['authentication']) {
+        if (allowedEmails.includes(userEmail)) {
+          setIsAuthenticated(true, 'kmcardle@che.school')
+        } else {
+          setIsAuthenticated(true, userEmail)
+        }
+
+        navigate('/groups')
+        alert('Login Success')
+      } else {
+        setError('Unauthorized access')
+        setIsAuthenticated(false)
+        alert('Login Failed')
+      }
+    } catch (err) {
+      console.error('Authentication error:', err)
+      setError('Login failed')
+      setIsAuthenticated(false)
     }
-  }
-  const errorMessage = (error: any) => {
-    console.log(error)
   }
 
   return (

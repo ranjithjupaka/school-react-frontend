@@ -11,6 +11,40 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import React from 'react'
 import Sidebar from '@/lib/layout/Sidebar'
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+
+const sentEmails = [
+  {
+    id: 1,
+    to: 'john@example.com',
+    subject: 'Meeting tomorrow',
+    preview: 'Hi John, Just a reminder about our meeting tomorrow at 10 AM...',
+    date: '2023-05-15T10:30:00Z',
+  },
+  {
+    id: 2,
+    to: 'sarah@example.com',
+    subject: 'Project update',
+    preview:
+      'Hello Sarah, I wanted to give you a quick update on the project...',
+    date: '2023-05-14T15:45:00Z',
+  },
+  {
+    id: 3,
+    to: 'team@example.com',
+    subject: 'Weekly report',
+    preview: 'Team, Please find attached the weekly report for your review...',
+    date: '2023-05-13T09:00:00Z',
+  },
+]
+
 const index = () => {
   const [groups, setGroups] = useState([
     { id: 1, name: 'Group 1', members: 10 },
@@ -51,30 +85,49 @@ const index = () => {
         <Sidebar active={3} />
         <main className='w-4/5 overflow-auto p-8'>
           <div className='max-w-4xl mx-auto'>
-            <h1 className='text-2xl font-bold mb-6'>Sent Email</h1>
+            <div className='flex justify-between items-center'>
+              <h1 className='text-2xl font-bold'>Sent Emails</h1>
+              <Button>Refresh</Button>
+            </div>
 
-            <div className='space-y-2'>
-              {groups.map((group) => (
-                <div
-                  key={group.id}
-                  className='flex items-center justify-between bg-white p-4 rounded-lg shadow'
-                >
-                  <span className='text-lg'>
-                    {group.name} - {group.members} members
-                  </span>
-                  <div className='flex gap-2'>
-                    <Button variant='outline' size='sm' title='Add Members'>
-                      <Plus className='h-4 w-4 mr-1' /> Add Members
-                    </Button>
-                    <Button variant='outline' size='sm' title='View Members'>
-                      <Eye className='h-4 w-4 mr-1' /> View
-                    </Button>
-                    <Button variant='outline' size='sm' title='Delete Group'>
-                      <Trash2 className='h-4 w-4 mr-1' /> Delete
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className='space-y-4 bg-white p-4 mt-4 rounded-md'>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className='w-[180px]'>To</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Preview</TableHead>
+                    <TableHead className='text-right'>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sentEmails.map((email) => (
+                    <TableRow key={email.id}>
+                      <TableCell className='font-medium'>
+                        <div className='flex items-center space-x-2'>
+                          <Avatar className='h-6 w-6'>
+                            <AvatarImage
+                              src={`https://api.dicebear.com/6.x/initials/svg?seed=${email.to}`}
+                              alt={email.to}
+                            />
+                            <AvatarFallback>
+                              {email.to.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{email.to}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{email.subject}</TableCell>
+                      <TableCell className='max-w-md truncate'>
+                        {email.preview}
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        {new Date(email.date).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </div>
         </main>
