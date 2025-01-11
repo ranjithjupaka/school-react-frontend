@@ -36,11 +36,15 @@ const index = () => {
 
   const getGroups = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:5000/groups', {
-        headers: {
-          Accept: 'application/json',
-        },
-      })
+      const email = localStorage.getItem('userEmail')
+      const response = await axios.get(
+        `http://127.0.0.1:5000/groups/${email}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      )
       console.log('groups list', response.data.data)
 
       setGroups(response.data.data)
@@ -113,11 +117,6 @@ const index = () => {
       toast.error('Error creating group')
       console.error('Error fetching groups:', error)
     }
-  }
-
-  const viewMembers = (e: React.FormEvent, index: number) => {
-    e.preventDefault()
-    console.log('view members', groups[index])
   }
 
   const deleteGroup = async (e: React.FormEvent, id: string) => {

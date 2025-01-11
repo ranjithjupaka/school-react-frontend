@@ -11,50 +11,87 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import React from 'react'
 import Sidebar from '@/lib/layout/Sidebar'
 import { toast } from 'react-toastify'
+import axios from 'axios'
+import Select from 'react-select'
 
 const index = () => {
-  const [groups, setGroups] = useState([
-    { id: 1, name: 'Group 1', members: 10 },
-    { id: 2, name: 'Group 2', members: 15 },
-    { id: 3, name: 'Group 3', members: 8 },
-  ])
-
-  const [newGroupName, setNewGroupName] = React.useState('')
-  const [newGroupMembers, setNewGroupMembers] = React.useState('')
-
-  const handleCreateGroup = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (newGroupName.trim() && newGroupMembers.trim()) {
-      const memberCount = newGroupMembers.split(',').length
-      setGroups([
-        ...groups,
-        { id: groups.length + 1, name: newGroupName, members: memberCount },
-      ])
-      setNewGroupName('')
-      setNewGroupMembers('')
-    }
-  }
-
-  const [to, setTo] = useState('')
-  const [subject, setSubject] = useState('')
+  const [groups, setGroups] = useState<any>([])
+  const [selectedGroups, setSelectedGroups] = useState<any>([])
+  const [groupEmails, setGroupEmails] = useState<any>({})
   const [message, setMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
 
+  const getGroups = async () => {
+    try {
+      const email = localStorage.getItem('userEmail')
+      const response = await axios.get(
+        `http://127.0.0.1:5000/groups/${email}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      )
+      console.log('groups list', response.data.data)
+
+      const groups = []
+      const gEmails: any = {}
+
+      for (const g of response.data.data) {
+        const group = { value: g['id'], label: g.fields.Name }
+        groups.push(group)
+        gEmails[g['id']] = g.fields['Parent Email']
+      }
+
+      console.log('groups', groups)
+
+      setGroups(groups)
+      setGroupEmails(gEmails)
+    } catch (error) {
+      console.error('Error fetching groups:', error)
+    }
+  }
+
+  useEffect(() => {
+    getGroups()
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSending(true)
+    try {
+      setIsSending(true)
+      const from_email = localStorage.getItem('userEmail')
 
-    // This is where you'd typically send the email using an API
-    // For now, we'll just simulate a delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+      let group_ids = selectedGroups.map((group: any) => group.value)
+      let to_emails = []
 
-    toast.success('Your email has been sent successfully.')
+      for (const id of group_ids) {
+        to_emails.push(groupEmails[id])
+      }
 
-    // Reset form
-    setTo('')
-    setSubject('')
-    setMessage('')
-    setIsSending(false)
+      to_emails = to_emails.reduce((acc, curr) => [...acc, ...curr], [])
+
+      const data = {
+        from_email,
+        to_emails,
+        message,
+        group_ids,
+      }
+
+      console.log('data', data)
+
+      let resp = await axios.post('http://127.0.0.1:5000/send_email', data)
+      console.log('resp', resp)
+
+      toast.success('Your email has been sent successfully.')
+
+      setMessage('')
+      setSelectedGroups([])
+      setIsSending(false)
+    } catch (error) {
+      console.log('error', error)
+      toast.error('Error sending email.')
+    }
   }
 
   return (
@@ -88,16 +125,19 @@ const index = () => {
                 >
                   To
                 </label>
-                <Input
-                  id='to'
-                  type='email'
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  required
-                  placeholder='recipient@example.com'
+                <Select
+                  isMulti
+                  name='emails'
+                  options={groups}
+                  value={selectedGroups}
+                  onChange={(selected) => {
+                    setSelectedGroups(
+                      selected as { value: string; label: string }[]
+                    )
+                  }}
                 />
               </div>
-              <div>
+              {/* <div>
                 <label
                   htmlFor='subject'
                   className='block text-sm font-medium text-gray-700 mb-2'
@@ -112,7 +152,7 @@ const index = () => {
                   required
                   placeholder='Email subject'
                 />
-              </div>
+              </div> */}
               <div>
                 <label
                   htmlFor='message'

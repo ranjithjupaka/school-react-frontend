@@ -8,6 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import React from 'react'
 import Sidebar from '@/lib/layout/Sidebar'
 
@@ -20,53 +26,33 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-const sentEmails = [
-  {
-    id: 1,
-    to: 'john@example.com',
-    subject: 'Meeting tomorrow',
-    preview: 'Hi John, Just a reminder about our meeting tomorrow at 10 AM...',
-    date: '2023-05-15T10:30:00Z',
-  },
-  {
-    id: 2,
-    to: 'sarah@example.com',
-    subject: 'Project update',
-    preview:
-      'Hello Sarah, I wanted to give you a quick update on the project...',
-    date: '2023-05-14T15:45:00Z',
-  },
-  {
-    id: 3,
-    to: 'team@example.com',
-    subject: 'Weekly report',
-    preview: 'Team, Please find attached the weekly report for your review...',
-    date: '2023-05-13T09:00:00Z',
-  },
-]
-
 const index = () => {
-  const [groups, setGroups] = useState([
-    { id: 1, name: 'Group 1', members: 10 },
-    { id: 2, name: 'Group 2', members: 15 },
-    { id: 3, name: 'Group 3', members: 8 },
-  ])
+  const [sentEmails, setSentEmails] = useState([])
 
-  const [newGroupName, setNewGroupName] = React.useState('')
-  const [newGroupMembers, setNewGroupMembers] = React.useState('')
+  const getSentMails = async () => {
+    try {
+      const email = localStorage.getItem('userEmail')
+      const response = await fetch(
+        `http://localhost:5000/sent_emails/${email}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+      const data = await response.json()
+      console.log('data', data)
 
-  const handleCreateGroup = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (newGroupName.trim() && newGroupMembers.trim()) {
-      const memberCount = newGroupMembers.split(',').length
-      setGroups([
-        ...groups,
-        { id: groups.length + 1, name: newGroupName, members: memberCount },
-      ])
-      setNewGroupName('')
-      setNewGroupMembers('')
+      setSentEmails(data.data)
+    } catch (error) {
+      console.error('Error fetching sent emails:', error)
     }
   }
+
+  useEffect(() => {
+    getSentMails()
+  }, [])
 
   return (
     <div className='flex flex-col h-screen bg-gray-100'>
@@ -83,46 +69,61 @@ const index = () => {
       </header>
       <div className='flex flex-1 overflow-hidden'>
         <Sidebar active={3} />
-        <main className='w-4/5 overflow-auto p-8'>
+        <main className='w-full overflow-auto p-8'>
           <div className='max-w-4xl mx-auto'>
             <div className='flex justify-between items-center'>
               <h1 className='text-2xl font-bold'>Sent Emails</h1>
-              <Button>Refresh</Button>
+              <Button onClick={() => getSentMails()}>Refresh</Button>
             </div>
 
             <div className='space-y-4 bg-white p-4 mt-4 rounded-md'>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className='w-[180px]'>To</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Preview</TableHead>
-                    <TableHead className='text-right'>Date</TableHead>
+                    <TableHead className='w-[200px]'>To</TableHead>
+                    <TableHead>Content</TableHead>
+                    <TableHead className='text-right w-[180px]'>Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sentEmails.map((email) => (
-                    <TableRow key={email.id}>
+                    <TableRow key={email['id']}>
                       <TableCell className='font-medium'>
-                        <div className='flex items-center space-x-2'>
-                          <Avatar className='h-6 w-6'>
+                        <div className='flex items-center gap-2'>
+                          <Avatar className='h-6 w-6 flex-shrink-0'>
                             <AvatarImage
-                              src={`https://api.dicebear.com/6.x/initials/svg?seed=${email.to}`}
-                              alt={email.to}
+                              src={`https://api.dicebear.com/6.x/initials/svg?seed=${email['fields']['toEmail']}`}
+                              alt={email['fields']['toEmail']}
                             />
                             <AvatarFallback>
-                              {email.to.slice(0, 2).toUpperCase()}
+                              {email['fields']['toEmail']}
                             </AvatarFallback>
                           </Avatar>
-                          <span>{email.to}</span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className='block truncate w-[250px]'>
+                                  {email['fields']['toEmail']}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <span className='w-[50%]'>
+                                  {email['fields']['toEmail']}
+                                </span>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
-                      <TableCell>{email.subject}</TableCell>
-                      <TableCell className='max-w-md truncate'>
-                        {email.preview}
+                      <TableCell>
+                        <div className='max-w-md truncate'>
+                          {email['fields']['emailContent']}
+                        </div>
                       </TableCell>
                       <TableCell className='text-right'>
-                        {new Date(email.date).toLocaleString()}
+                        {new Date(
+                          email['fields']['Timestamp']
+                        ).toLocaleString()}
                       </TableCell>
                     </TableRow>
                   ))}
